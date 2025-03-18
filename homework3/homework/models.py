@@ -7,8 +7,43 @@ HOMEWORK_DIR = Path(__file__).resolve().parent
 INPUT_MEAN = [0.2788, 0.2657, 0.2629]
 INPUT_STD = [0.2064, 0.1944, 0.2252]
 
+class ClassificationLoss(nn.Module):
+    def forward(self, logits: torch.Tensor, target: torch.LongTensor) -> torch.Tensor:
+        """
+        Multi-class classification loss
+        Hint: simple one-liner
+
+        Args:
+            logits: tensor (b, c) logits, where c is the number of classes
+            target: tensor (b,) labels
+
+        Returns:
+            tensor, scalar loss
+        """
+        loss = torch.nn.CrossEntropyLoss()
+        return loss(logits,target)
+
 
 class Classifier(nn.Module):
+    class Block(torch.nn.Module):
+        def __init__(self, n_input, n_output, stride=1):
+            super().__init__()
+            self.net = torch.nn.Sequential(
+              torch.nn.Conv2d(n_input, n_output, kernel_size=3, padding=1, stride=stride, bias=False),
+              torch.nn.BatchNorm2d(n_output),
+              torch.nn.ReLU(),
+              torch.nn.Conv2d(n_output, n_output, kernel_size=3, padding=1, bias=False),
+              torch.nn.BatchNorm2d(n_output),
+              torch.nn.ReLU()
+            )
+            
+        def forward(self, x):
+            # identity = x
+            # if self.downsample is not None:
+            #     identity = self.downsample(x)
+            # return self.net(x) + identity
+            return self.net(x)
+    
     def __init__(
         self,
         in_channels: int = 3,
@@ -22,11 +57,28 @@ class Classifier(nn.Module):
             num_classes: int
         """
         super().__init__()
+        cnn_layers = [
+            torch.nn.Conv2d(in_channels,32, kernel_size=11, stride=2, padding=5),
+            torch.nn.ReLU(),
+        ]
+        c1=32
+        for _ in range(3):
+           c2 = c1*2 
+           cnn_layers.append(self.Block(c1, c2, stride=2))
+           c1=c2
+
+        cnn_layers.append(torch.nn.Conv2d(c1, 1, kernel_size=1))
+        cnn_layers.append(torch.nn.AdaptiveAvgPool2d(1))
+
+        self.network = torch.nn.Sequential(*cnn_layers)
 
         self.register_buffer("input_mean", torch.as_tensor(INPUT_MEAN))
         self.register_buffer("input_std", torch.as_tensor(INPUT_STD))
 
+
         # TODO: implement
+
+
         pass
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -41,9 +93,12 @@ class Classifier(nn.Module):
         z = (x - self.input_mean[None, :, None, None]) / self.input_std[None, :, None, None]
 
         # TODO: replace with actual forward pass
-        logits = torch.randn(x.size(0), 6)
+       
+        logits = self.network(x)
 
-        return logits
+        #logits = torch.randn(x.size(0), 6)
+
+        return logits.view(logits.size(0),-1)
 
     def predict(self, x: torch.Tensor) -> torch.Tensor:
         """
