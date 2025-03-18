@@ -82,8 +82,8 @@ def train(
             # TODO: implement training step
 
             pred_lbl = model(img)
-            loss_obtained = loss_func(pred_lbl.float(),label.float())
-            trainAccuracyMetric.add(pred_lbl,label)
+            loss_obtained = loss_func(pred_lbl,label)
+            trainAccuracyMetric.add(model.predict(img),label)
             
             optimizer.zero_grad()
             loss_obtained.backward()
