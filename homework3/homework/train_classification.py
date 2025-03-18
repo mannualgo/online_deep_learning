@@ -82,7 +82,7 @@ def train(
             # TODO: implement training step
 
             pred_lbl = model(img)
-            loss_obtained = loss_func(torch.squeeze(pred_lbl).float(),label.float())
+            loss_obtained = loss_func(pred_lbl.float(),label.float())
             trainAccuracyMetric.add(pred_lbl,label)
             
             optimizer.zero_grad()
@@ -93,7 +93,6 @@ def train(
         # disable gradient computation and switch to evaluation mode
         with torch.inference_mode():
             model.eval()
-
             for img, label in val_data:
                 img, label = img.to(device), label.to(device)
                 pred_lbl_val = model.predict(img)

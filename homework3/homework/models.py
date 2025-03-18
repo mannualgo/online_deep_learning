@@ -58,12 +58,12 @@ class Classifier(nn.Module):
         """
         super().__init__()
         cnn_layers = [
-            torch.nn.Conv2d(in_channels,32, kernel_size=11, stride=2, padding=5),
+            torch.nn.Conv2d(in_channels,in_channels, kernel_size=11, stride=2, padding=5),
             torch.nn.ReLU(),
         ]
-        c1=32
+        c1=in_channels
         for _ in range(3):
-           c2 = c1*2 
+           c2 = c1 
            cnn_layers.append(self.Block(c1, c2, stride=2))
            c1=c2
 
