@@ -1,11 +1,17 @@
 from pathlib import Path
 
 import torch
+from torch._prims_common import Tensor
 import torch.nn as nn
 
 HOMEWORK_DIR = Path(__file__).resolve().parent
 INPUT_MEAN = [0.2788, 0.2657, 0.2629]
 INPUT_STD = [0.2064, 0.1944, 0.2252]
+
+class RegressionLoss(nn.Module):
+  def forward(self, predictions: torch.Tensor, target: torch.Tensor)-> torch.Tensor:
+    loss = torch.nn.MSELoss() 
+    return loss(predictions,target)
 
 class ClassificationLoss(nn.Module):
     def forward(self, logits: torch.Tensor, target: torch.LongTensor) -> torch.Tensor:

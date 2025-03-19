@@ -8,13 +8,13 @@ from torch.return_types import mode
 import torch.utils.tensorboard as tb
 
 
-from .models import load_model, Classifier,save_model,ClassificationLoss
+from .models import load_model, Classifier,save_model,ClassificationLoss,RegressionLoss
 
 import sys
 sys.path.insert(0, '/content/online_deep_learning/homework3/homework/datasets')
 
 from road_dataset import load_data
-from .metrics import AccuracyMetric
+from .metrics import DetectionMetric
 
 train_data = load_data("classification_data/train",transform_pipeline="aug", shuffle=True, batch_size=50, num_workers=2)
 val_data = load_data("classification_data/val", shuffle=False)
@@ -61,9 +61,10 @@ def train(
 
     # create loss function and optimizer & AccuracyMetric
     loss_func = ClassificationLoss()
+    loss_func_reg=RegressionLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr,momentum=0) 
-    trainAccuracyMetric= AccuracyMetric()
-    valAccuracyMetric= AccuracyMetric()
+    trainAccuracyMetric= DetectionMetric()
+    valAccuracyMetric= DetectionMetric()
 
     global_step = 0
     metrics = {"train_acc": [], "val_acc": []}
@@ -82,7 +83,10 @@ def train(
             # TODO: implement training step
 
             pred_lbl = model(img)
-            loss_obtained = loss_func(pred_lbl,label)
+            loss_obtained_cls = loss_func(pred_lbl[0],label)
+            loss_otained_reg=loss_func_reg(pred_lbl[1],label)
+            loss_obtained= loss_obtained_cls+loss_otained_reg
+
             trainAccuracyMetric.add(model.predict(img),label)
             
             optimizer.zero_grad()
