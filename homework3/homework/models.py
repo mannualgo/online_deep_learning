@@ -36,13 +36,18 @@ class Classifier(nn.Module):
               torch.nn.BatchNorm2d(n_output),
               torch.nn.ReLU()
             )
-            
+            if n_input != n_output:
+                self.skip=(torch.nn.Conv2d(n_input, n_output, kernel_size=1, stride=stride, padding=0)) 
+            else:
+                self.skip = torch.nn.Identity()
+               
         def forward(self, x):
             # identity = x
             # if self.downsample is not None:
             #     identity = self.downsample(x)
             # return self.net(x) + identity
-            return self.net(x)
+            
+            return self.skip(x) + self.net(x)
     
     def __init__(
         self,
@@ -68,7 +73,8 @@ class Classifier(nn.Module):
            cnn_layers.append(self.Block(c1, c2, stride=2))
            c1=c2
 
-        self.skiplayer=(torch.nn.Conv2d(c1, c1, kernel_size=1, stride=2, padding=0))  # Adjusted stride for pooling
+          # Adjusted stride for pooling
+        
         self.oneconv= (torch.nn.Conv2d(c1, num_classes, kernel_size=1))
         self.globalavgpool=(torch.nn.AdaptiveAvgPool2d(1))
 
@@ -80,7 +86,7 @@ class Classifier(nn.Module):
         self.register_buffer("input_mean", torch.as_tensor(INPUT_MEAN))
         self.register_buffer("input_std", torch.as_tensor(INPUT_STD))
 
-        print(self.network)
+        #print(self.network)
 
         # TODO: implement
 
@@ -99,14 +105,8 @@ class Classifier(nn.Module):
         z = (x - self.input_mean[None, :, None, None]) / self.input_std[None, :, None, None]
 
         # TODO: replace with actual forward pass
-        print("x" , x.shape)
-       
-
-        print("self.network(x)" , self.network(x).shape)
-        x = self.network(x)
-        print("self.skiplayer(x)" , self.skiplayer(x).shape)
         
-        x = x+self.skiplayer(x)
+        x = self.network(x)
         x = self.oneconv(x)
 
         logits = self.globalavgpool(x)
