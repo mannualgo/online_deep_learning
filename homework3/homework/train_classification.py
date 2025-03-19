@@ -16,7 +16,7 @@ sys.path.insert(0, '/content/online_deep_learning/homework3/homework/datasets')
 from classification_dataset import load_data
 from .metrics import AccuracyMetric
 
-train_data = load_data("classification_data/train", shuffle=True, batch_size=50, num_workers=2)
+train_data = load_data("classification_data/train",transform_pipeline="aug", shuffle=True, batch_size=50, num_workers=2)
 val_data = load_data("classification_data/val", shuffle=False)
 
 print(train_data, val_data)

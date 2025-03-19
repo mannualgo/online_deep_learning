@@ -99,7 +99,13 @@ class Classifier(nn.Module):
         z = (x - self.input_mean[None, :, None, None]) / self.input_std[None, :, None, None]
 
         # TODO: replace with actual forward pass
+        print("x" , x.shape)
+       
+
+        print("self.network(x)" , self.network(x).shape)
         x = self.network(x)
+        print("self.skiplayer(x)" , self.skiplayer(x).shape)
+        
         x = x+self.skiplayer(x)
         x = self.oneconv(x)
 
