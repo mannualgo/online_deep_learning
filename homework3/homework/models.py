@@ -68,8 +68,12 @@ class Classifier(nn.Module):
            cnn_layers.append(self.Block(c1, c2, stride=2))
            c1=c2
 
-        cnn_layers.append(torch.nn.Conv2d(c1, num_classes, kernel_size=1))
-        cnn_layers.append(torch.nn.AdaptiveAvgPool2d(1))
+        self.skiplayer=(torch.nn.Conv2d(c1, c1, kernel_size=1, stride=2, padding=0))  # Adjusted stride for pooling
+        self.oneconv= (torch.nn.Conv2d(c1, num_classes, kernel_size=1))
+        self.globalavgpool=(torch.nn.AdaptiveAvgPool2d(1))
+
+        # cnn_layers.append(torch.nn.Conv2d(c1, num_classes, kernel_size=1))
+        # cnn_layers.append(torch.nn.AdaptiveAvgPool2d(1))
 
         self.network = torch.nn.Sequential(*cnn_layers)
 
@@ -95,9 +99,11 @@ class Classifier(nn.Module):
         z = (x - self.input_mean[None, :, None, None]) / self.input_std[None, :, None, None]
 
         # TODO: replace with actual forward pass
-       
-        logits = self.network(x)
+        x = self.network(x)
+        x = x+self.skiplayer(x)
+        x = self.oneconv(x)
 
+        logits = self.globalavgpool(x)
 
         return logits.view(logits.size(0), -1)
 
