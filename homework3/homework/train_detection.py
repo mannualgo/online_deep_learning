@@ -10,16 +10,12 @@ import torch.utils.tensorboard as tb
 
 from .models import load_model, Classifier,save_model,ClassificationLoss,RegressionLoss
 
-import sys
-sys.path.insert(0, '/content/online_deep_learning/homework3/homework/datasets')
+
 
 from road_dataset import load_data
 from .metrics import DetectionMetric
 
-train_data = load_data("classification_data/train",transform_pipeline="aug", shuffle=True, batch_size=50, num_workers=2)
-val_data = load_data("classification_data/val", shuffle=False)
 
-print(train_data, val_data)
 
 def train(
     exp_dir: str = "logs",
@@ -50,13 +46,20 @@ def train(
     logger = tb.SummaryWriter(log_dir)
 
     # note: the grader uses default kwargs, you'll have to bake them in for the final submission
+    
+    train_data = load_data("drive_data/train", shuffle=True, batch_size=batch_size, num_workers=2)
+    val_data = load_data("drive_data/val", shuffle=False)
+    
+    
     model = load_model(model_name, **kwargs)
     model = model.to(device)
     
 
-    train_data = load_data("classification_data/train",transform_pipeline="aug", shuffle=True, batch_size=batch_size, num_workers=2)
-    val_data = load_data("classification_data/val", shuffle=False)
-    
+    for datum in train_data:
+        print(datum["image"].to(device).shape)
+        print(datum["track"].to(device).shape)
+        print(datum["depth"].to(device).shape)
+        break
     
 
     # create loss function and optimizer & AccuracyMetric
@@ -71,23 +74,35 @@ def train(
     print("batch size", batch_size)
     # training loop
 
-   
+    #image, depth, and track 
     for epoch in range(num_epoch):
         # clear metrics at beginning of epoch
         trainAccuracyMetric.reset()
         valAccuracyMetric.reset()
         
-        for img, label in train_data:
-            img, label = img.to(device), label.to(device)
+        for datum in train_data:
+            img= datum["image"].to(device)
+            track= datum["track"].to(device)
+            depth=datum["depth"].to(device)
+            
             
             # TODO: implement training step
+            #preds: torch.Tensor,
+            # labels: torch.Tensor,
+            # depth_preds: torch.Tensor,
+            # depth_labels: torch.Tensor,
 
             pred_lbl = model(img)
-            loss_obtained_cls = loss_func(pred_lbl[0],label)
-            loss_otained_reg=loss_func_reg(pred_lbl[1],label)
+
+            
+            loss_obtained_cls = loss_func(pred_lbl[0],track)
+            loss_otained_reg=loss_func_reg(pred_lbl[1],depth)
+
             loss_obtained= loss_obtained_cls+loss_otained_reg
 
-            trainAccuracyMetric.add(model.predict(img),label)
+            prediction = model.predict(img)
+            
+            trainAccuracyMetric.add(prediction[0],track,prediction[1],depth)
             
             optimizer.zero_grad()
             loss_obtained.backward()
@@ -97,12 +112,13 @@ def train(
         # disable gradient computation and switch to evaluation mode
         with torch.inference_mode():
             model.eval()
-            for img, label in val_data:
-                img, label = img.to(device), label.to(device)
-                pred_lbl_val = model.predict(img)
-                # TODO: compute validation accuracy
-                valAccuracyMetric.add(pred_lbl_val,label)
-  
+            
+            for datum in val_data:
+                img= datum["image"].to(device)
+                track= datum["track"].to(device)
+                depth=datum["depth"].to(device)
+                prediction = model.predict(img)
+                valAccuracyMetric.add(prediction[0],track,prediction[1],depth)
 
         # log average train and val accuracy to tensorboard
         epoch_train_acc = trainAccuracyMetric.compute()["accuracy"]
@@ -142,4 +158,5 @@ if __name__ == "__main__":
 
     # pass all arguments to train
     train(**vars(parser.parse_args()))
+
 
