@@ -140,35 +140,25 @@ class UNetBlock(nn.Module):
         self.block = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, bias=False),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Conv2d(out_channels, out_channels, kernel_size=kernel_size, padding=padding, bias=False),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
+            nn.ReLU()
         )
+        if in_channels != out_channels:
+              self.skip=(torch.nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0)) 
+        else:
+              self.skip = torch.nn.Identity()
 
     def forward(self, x):
-        return self.block(x)
-class UNetBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, padding=1):
-        super().__init__()
-        self.block = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=kernel_size, padding=padding, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
-        )
-
-    def forward(self, x):
-        return self.block(x)
+        return self.skip(x) + self.block(x)
 
 
 class DownSample(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.down = nn.Sequential(
-            nn.MaxPool2d(2),
+            
             UNetBlock(in_channels, out_channels)
         )
 
@@ -269,7 +259,7 @@ class Detector(torch.nn.Module):
         x = self.up2(x, x1)
         segmentation_logits = self.outc_segmentation(x)
         depth_output = self.outc_depth(x)
-        return segmentation_logits, depth_output
+        return segmentation_logits, depth_output.squeeze()
 
     def predict(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """

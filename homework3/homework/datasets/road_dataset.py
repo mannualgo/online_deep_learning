@@ -3,8 +3,8 @@ from pathlib import Path
 import numpy as np
 from torch.utils.data import ConcatDataset, DataLoader, Dataset
 
-from . import road_transforms
-from .road_utils import Track
+import road_transforms
+from road_utils import Track
 
 
 class RoadDataset(Dataset):

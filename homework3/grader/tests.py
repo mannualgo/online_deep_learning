@@ -193,6 +193,7 @@ class RoadDetectorGrader(BaseGrader):
 
         pred, pred_depth = output
 
+
         assert pred.shape == (batch_size, 96, 128), f"Label shape: {pred.shape}"
         assert pred_depth.shape == (batch_size, 96, 128), f"Depth shape: {pred_depth.shape}"
 
