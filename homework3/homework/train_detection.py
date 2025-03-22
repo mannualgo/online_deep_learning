@@ -64,9 +64,10 @@ def train(
     
 
     # create loss function and optimizer & AccuracyMetric
-    loss_func = ClassificationLoss()
+    wt=torch.Tensor([0.2,0.9,0.9]).to(device)
+    loss_func = torch.nn.CrossEntropyLoss(weight=wt)
     loss_func_reg=RegressionLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr,momentum=0) 
+    optimizer = torch.optim.AdamW(model.parameters(), lr) 
     trainAccuracyMetric= DetectionMetric()
     valAccuracyMetric= DetectionMetric()
 
@@ -74,7 +75,7 @@ def train(
     metrics = {"train_acc": [], "val_acc": []}
     print("batch size", batch_size)
     # training loop
-
+   
     #image, depth, and track 
     for epoch in range(num_epoch):
         # clear metrics at beginning of epoch
@@ -121,9 +122,17 @@ def train(
                 prediction = model.predict(img)
                 valAccuracyMetric.add(prediction[0],track,prediction[1],depth)
 
+        computed_validation_metrics = valAccuracyMetric.compute()
         # log average train and val accuracy to tensorboard
+        
         epoch_train_acc = trainAccuracyMetric.compute()["accuracy"]
-        epoch_val_acc = valAccuracyMetric.compute()["accuracy"]
+        epoch_val_acc = computed_validation_metrics["accuracy"]
+
+        epoch_val_acc = torch.as_tensor(computed_validation_metrics["accuracy"])
+        epoch_iou = torch.as_tensor(computed_validation_metrics["iou"])
+        epoch_abs_depth_error = torch.as_tensor(computed_validation_metrics["abs_depth_error"])
+        epoch_tp_depth_error = torch.as_tensor(computed_validation_metrics["tp_depth_error"])
+
         
         logger.add_scalar("train_acc",epoch_train_acc,global_step)
         logger.add_scalar("val_acc",epoch_val_acc,global_step)
@@ -134,7 +143,11 @@ def train(
             print(
                 f"Epoch {epoch + 1:2d} / {num_epoch:2d}: "
                 f"train_acc={epoch_train_acc:.4f} "
-                f"val_acc={epoch_val_acc:.4f}"
+                f"val_acc={epoch_val_acc:.4f} "
+                f"accuracy={epoch_val_acc:.4f} "
+                f"iou={epoch_iou:.4f} "
+                f"abs_depth_error={epoch_abs_depth_error:.4f} "
+                f"tp_depth_error={epoch_tp_depth_error:.4f} "
             )
 
     # save and overwrite the model in the root directory for grading
@@ -159,5 +172,6 @@ if __name__ == "__main__":
 
     # pass all arguments to train
     train(**vars(parser.parse_args()))
+
 
 
